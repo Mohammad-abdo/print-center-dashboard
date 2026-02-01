@@ -10,14 +10,22 @@ export const SocketProvider = ({ children }) => {
     const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:6008';
     const newSocket = io(socketUrl, {
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
     });
 
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
       console.log('🔌 Print Dashboard connected to Socket:', newSocket.id);
-      newSocket.emit('join_admin_tracking'); // Join admin room to see updates
+      newSocket.emit('join_admin_tracking');
+    });
+
+    newSocket.on('connect_error', (err) => {
+      console.warn('Socket connect_error:', err.message);
     });
 
     return () => {

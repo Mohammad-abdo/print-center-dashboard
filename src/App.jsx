@@ -4,7 +4,11 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import Login from './pages/Login';
-import POSDashboard from './POSDashboard'; // Renamed from POSDashboard since it was used in App.jsx previously
+import POSDashboard from './POSDashboard';
+import OrderTracking from './pages/OrderTracking';
+import PrintSettings from './pages/PrintSettings';
+import PrintProfile from './pages/PrintProfile';
+import PrintFooter from './components/PrintFooter';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -39,18 +43,43 @@ const App = () => {
               }
             }}
           />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <POSDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+          <div className="min-h-screen flex flex-col">
+            <main className="flex-1">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <POSDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tracking"
+                  element={<OrderTracking />}
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <PrintSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <PrintProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+            <PrintFooter />
+          </div>
         </Router>
       </SocketProvider>
     </AuthProvider>
