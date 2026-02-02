@@ -81,6 +81,23 @@ const POSDashboard = () => {
     }
   }, [socket]);
 
+  // Live delivery location: join order room when viewing delivery tracking
+  useEffect(() => {
+    if (!socket || !deliveryTracking?.hasDelivery || !deliveryTracking?.order?.id) return;
+    const orderId = deliveryTracking.order.id;
+    socket.emit('track_order', { orderId });
+    const onLocation = (data) => {
+      setDeliveryTracking(prev => prev && prev.order?.id === orderId
+        ? { ...prev, deliveryLatestLocation: { latitude: data.latitude, longitude: data.longitude, address: data.address, createdAt: data.timestamp } }
+        : prev);
+    };
+    socket.on('location_updated', onLocation);
+    return () => {
+      socket.emit('untrack_order', { orderId });
+      socket.off('location_updated', onLocation);
+    };
+  }, [socket, deliveryTracking?.order?.id, deliveryTracking?.hasDelivery]);
+
   const fetchAssignments = async () => {
     try {
       setLoading(true);

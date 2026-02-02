@@ -116,6 +116,11 @@ const OrderTracking = () => {
                     <MapPin size={16} className="text-slate-400" />
                     <span className="text-sm font-bold text-slate-600">
                       {assignment.order.address || 'استلام من المركز'}
+                      {assignment.order?.latitude != null && assignment.order?.longitude != null && (
+                        <span className="block text-xs font-mono text-slate-400 mt-1">
+                          الإحداثيات: {Number(assignment.order.latitude).toFixed(4)}, {Number(assignment.order.longitude).toFixed(4)}
+                        </span>
+                      )}
                     </span>
                   </div>
                   
