@@ -30,6 +30,7 @@ import { useSocket } from './context/SocketContext';
 import { useAuth } from './context/AuthContext';
 import api from './config/api';
 import toast from 'react-hot-toast';
+import { getRouteDistanceAndEta } from './utils/osrm';
 
 const POSDashboard = () => {
   const [assignments, setAssignments] = useState([]);
@@ -39,6 +40,7 @@ const POSDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [deliveryTracking, setDeliveryTracking] = useState(null);
   const [loadingDeliveryTracking, setLoadingDeliveryTracking] = useState(false);
+  const [deliveryRouteStats, setDeliveryRouteStats] = useState(null);
   const [stats, setStats] = useState({ pending: 0, processing: 0, completed: 0 });
   const socket = useSocket();
   const { logout, user } = useAuth();
@@ -97,6 +99,32 @@ const POSDashboard = () => {
       socket.off('location_updated', onLocation);
     };
   }, [socket, deliveryTracking?.order?.id, deliveryTracking?.hasDelivery]);
+
+  // OSRM: المسافة والوقت المتوقع بين الدليفري ووجهة الطلب (تتبع الدليفري)
+  useEffect(() => {
+    if (!deliveryTracking?.deliveryLatestLocation || deliveryTracking?.order?.latitude == null || deliveryTracking?.order?.longitude == null) {
+      setDeliveryRouteStats(null);
+      return;
+    }
+    const from = {
+      lat: deliveryTracking.deliveryLatestLocation.latitude,
+      lng: deliveryTracking.deliveryLatestLocation.longitude,
+    };
+    const to = {
+      lat: deliveryTracking.order.latitude,
+      lng: deliveryTracking.order.longitude,
+    };
+    let cancelled = false;
+    getRouteDistanceAndEta(from, to).then((stats) => {
+      if (!cancelled && stats) setDeliveryRouteStats(stats);
+    });
+    return () => { cancelled = true; };
+  }, [
+    deliveryTracking?.deliveryLatestLocation?.latitude,
+    deliveryTracking?.deliveryLatestLocation?.longitude,
+    deliveryTracking?.order?.latitude,
+    deliveryTracking?.order?.longitude,
+  ]);
 
   const fetchAssignments = async () => {
     try {
@@ -460,6 +488,21 @@ const POSDashboard = () => {
                           <p className="text-sm font-bold text-slate-600">هاتف: {deliveryTracking.delivery?.phone}</p>
                           <p className="text-xs text-slate-500">الحالة: {deliveryTracking.deliveryAssignment?.status}</p>
                         </div>
+                        {deliveryRouteStats && (
+                          <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-2xl border border-slate-200">
+                            <div>
+                              <p className="text-[10px] font-black uppercase text-teal-600 tracking-widest mb-0.5">المسافة</p>
+                              <p className="font-black text-slate-900">{deliveryRouteStats.distanceKm} كم</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black uppercase text-teal-600 tracking-widest mb-0.5">الوصول خلال</p>
+                              <p className="font-black text-slate-900">{deliveryRouteStats.estimatedMinutes} دقيقة</p>
+                            </div>
+                            <p className="col-span-2 text-[10px] font-bold text-slate-500">
+                              وقت الوصول تقريباً: {new Date(deliveryRouteStats.eta).toLocaleTimeString('ar-EG')}
+                            </p>
+                          </div>
+                        )}
                         <DeliveryTrackingMap
                           order={deliveryTracking.order}
                           printCenter={deliveryTracking.printCenter}
